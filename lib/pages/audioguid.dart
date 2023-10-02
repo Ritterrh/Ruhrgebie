@@ -295,8 +295,12 @@ class _AudioGuidState extends State<AudioGuid> {
                             IconButton(
                               icon: Icon(Icons.play_arrow),
                               onPressed: () {
-                                _playAudio(audioUrl, index);
-                                _audioPlayer.play();
+                                if (_isPlaying) {
+                                  _audioPlayer.play();
+                                } else {
+                                  _playAudio(audioUrl, index);
+                                  _audioPlayer.play();
+                                }
                               },
                             ),
                         ],
