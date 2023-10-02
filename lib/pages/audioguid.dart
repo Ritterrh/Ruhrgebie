@@ -20,6 +20,7 @@ class _AudioGuidState extends State<AudioGuid> {
   final _audioPlayer = AssetsAudioPlayer();
   List<dynamic> _data = [];
   bool _isPlaying = false;
+  int _currentlyPlayingIndex = -1; // Index der aktuell abgespielten Audiodatei
   String _title = '';
   String _subtitle = '';
   String _imageUrl = '';
@@ -166,36 +167,50 @@ class _AudioGuidState extends State<AudioGuid> {
   }
 
   Future<void> _playAudio(String audioUrl, int index) async {
-    if (_data[index] == null) {
-      print("8");
-      print("null");
-    }
-    titel = _data[index]['title'];
-    description = _data[index]['description'];
-    imageUrl = _data[index]['img_url'];
+    if (index != _currentlyPlayingIndex) {
+      // Überprüfen, ob bereits eine andere Audiodatei abgespielt wird
+      _currentlyPlayingIndex = index;
+      if (_data[index] == null) {
+        print("8");
+        print("null");
+      }
+      titel = _data[index]['title'];
+      description = _data[index]['description'];
+      imageUrl = _data[index]['img_url'];
 
-    print("Audio URL $audioUrl");
-    await _audioPlayer.open(
-      Audio.network(audioUrl,
-          metas: Metas(
-            title: titel,
-            artist: description,
-            image: MetasImage.network(imageUrl),
-          )),
-      showNotification: true,
-      notificationSettings: const NotificationSettings(
-        stopEnabled: true,
-        playPauseEnabled: true,
-        nextEnabled: false,
-        prevEnabled: false,
-      ),
-    );
+      print("Audio URL $audioUrl");
+      await _audioPlayer.open(
+        Audio.network(audioUrl,
+            metas: Metas(
+              title: titel,
+              artist: description,
+              image: MetasImage.network(imageUrl),
+            )),
+        showNotification: true,
+        notificationSettings: const NotificationSettings(
+          stopEnabled: true,
+          playPauseEnabled: true,
+          nextEnabled: false,
+          prevEnabled: false,
+        ),
+      );
 
-    // Setzen Sie den Audioplayer-Timer, um die Position zu aktualisieren.
-    _audioPlayer.currentPosition.listen((position) {
-      setState(() {
-        _position = position;
+      // Setzen Sie den Audioplayer-Timer, um die Position zu aktualisieren.
+      _audioPlayer.currentPosition.listen((position) {
+        setState(() {
+          _position = position;
+        });
       });
+    } else {
+      // Die gleiche Audiodatei wird bereits abgespielt
+      if (!_isPlaying) {
+        _audioPlayer.play(); // Fortsetzen, wenn pausiert
+      } else {
+        _audioPlayer.pause(); // Anhalten, wenn abgespielt wird
+      }
+    }
+    setState(() {
+      _isPlaying = !_isPlaying;
     });
   }
 
@@ -295,12 +310,7 @@ class _AudioGuidState extends State<AudioGuid> {
                             IconButton(
                               icon: Icon(Icons.play_arrow),
                               onPressed: () {
-                                if (_isPlaying) {
-                                  _audioPlayer.play();
-                                } else {
-                                  _playAudio(audioUrl, index);
-                                  _audioPlayer.play();
-                                }
+                                _playAudio(audioUrl, index);
                               },
                             ),
                         ],
