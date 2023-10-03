@@ -1,0 +1,13 @@
+[{
+    "name": "Flutter-InAppUpgrade",
+    "description": "this is Flutter-InAppUpgrade local example app",
+    "release_notes": "\n1. \n2. \n3.",
+    "version": "0.0.1-aplha0001",
+    "os": "android",
+    "installers": [
+        {
+            "initializer": "android_apk",
+            "file_url": "http://localhost:8000/download/app-release.apk"
+        }
+    ]
+}]

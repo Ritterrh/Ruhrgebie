@@ -1,36 +1,45 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:RuhurKulturErlbnisApp/pages/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:RuhurKulturErlbnisApp/pages/audioguid.dart';
-import 'package:RuhurKulturErlbnisApp/pages/widget/app_bottom_navigation_bar.dart';
+import 'package:RuhurKulturErlbnisApp/widget/app_bottom_navigation_bar.dart';
+import 'package:RuhurKulturErlbnisApp/widget/appbar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
   @override
+  // ignore: library_private_types_in_public_api
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   List<dynamic> _data = [];
+  late String errotext = "";
+  late String errotitel = "";
+  late Timer _timer;
 
   Future<void> _fetchData() async {
     final response =
         await http.get(Uri.parse('https://api.filmprojekt1.de/api/game'));
     if (response.statusCode == 200) {
-      setState(() {
-        _data = json.decode(response.body);
-      });
+      if (mounted) {
+        setState(() {
+          if (mounted) _data = json.decode(response.body);
+        });
+      }
     } else {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
-              Text('Failed to load data: '),
+              Text(errotitel),
               Text(
-                'Please check your internet connection and try again.',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Home 149 $errotext',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -43,23 +52,28 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _fetchData();
-    Timer.periodic(const Duration(seconds: 5), (timer) {
-      _fetchData();
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        _fetchData();
+      } else {
+        _timer
+            .cancel(); // Stoppen Sie den Timer, wenn das Widget "ausgeschaltet" wurde.
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _timer
+        .cancel(); // Stellen Sie sicher, dass der Timer im dispose() gestoppt wird.
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       //APPBAR ANFANG
-      appBar: AppBar(
-        title: const Text(
-          'Ruhurkulturerlebnis',
-          style: TextStyle(
-              color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
+      appBar: appbar(),
       //APPBAR ENDE
 
       //BODY ANFANG
@@ -98,7 +112,14 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(builder: (context) => const AudioGuid()),
             );
           }
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingPage()),
+            );
+          }
         },
+        bg: Colors.white,
       ),
       //Bottom Navigation Bar Ende
     );

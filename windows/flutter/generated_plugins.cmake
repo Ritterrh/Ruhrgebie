@@ -4,8 +4,11 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   awesome_notifications
+  connectivity_plus
   geolocator_windows
+  nb_utils
   permission_handler_windows
+  upgrade
   url_launcher_windows
 )
 

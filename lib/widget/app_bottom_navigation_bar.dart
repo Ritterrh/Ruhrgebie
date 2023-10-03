@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class AppBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final Color bg;
 
   const AppBottomNavigationBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,
+    required this.bg,
   }) : super(key: key);
 
   @override
@@ -24,10 +26,11 @@ class AppBottomNavigationBar extends StatelessWidget {
           icon: Icon(Icons.podcasts),
           label: 'Audio Guide',
         ),
-        /*  BottomNavigationBarItem(
-          icon: Icon(Icons.favorite),
-          label: 'Favoriten',
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          label: 'Einstellungen',
         ),
+        /*
         BottomNavigationBarItem(
           icon: Icon(Icons.settings),
           label: 'Einstellungen',
@@ -36,7 +39,7 @@ class AppBottomNavigationBar extends StatelessWidget {
       ],
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.grey,
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
     );
   }
 }
