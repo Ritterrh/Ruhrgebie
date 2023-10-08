@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1012358424311",
+    "project_id": "filmprojekt1-44315",
+    "storage_bucket": "filmprojekt1-44315.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012358424311:android:ea82549a56d49cfe7515f2",
+        "android_client_info": {
+          "package_name": "com.example.ruhurkulturerlbnisapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1012358424311-6892hd6oduo86ogv4gb4nsc0dgiv6g87.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLAPKkO7Y4gul_CQeSh0qh-0qeZU-KdtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1012358424311-6892hd6oduo86ogv4gb4nsc0dgiv6g87.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

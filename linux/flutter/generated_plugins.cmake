@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   awesome_notifications
+  desktop_webview_auth
   nb_utils
   upgrade
   url_launcher_linux

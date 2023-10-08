@@ -10,6 +10,7 @@ class AudioData extends ChangeNotifier {
   String description = "";
   String creator = "";
   bool isPlaying = false;
+  int currentPosition = 0;
 
   // Methode zum Aktualisieren der Image-URL
   void setImageUrl(String url) {
@@ -44,6 +45,11 @@ class AudioData extends ChangeNotifier {
   // Methode zum Aktualisieren des Wiedergabezustands
   void setIsPlaying(bool playing) {
     isPlaying = playing;
+    notifyListeners();
+  }
+
+  void setCurrentPosition(newcurrentPosition) {
+    currentPosition = newcurrentPosition;
     notifyListeners();
   }
 }

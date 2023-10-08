@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:RuhurKulturErlbnisApp/pages/settings.dart';
-import 'package:RuhurKulturErlbnisApp/widget/app_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
@@ -21,25 +18,12 @@ class AudioGuid extends StatefulWidget {
   _AudioGuidState createState() => _AudioGuidState();
 }
 
-class AudioInfo {
-  final String audioUrl;
-  final bool isPlaying;
-  final Duration position;
-
-  AudioInfo({
-    required this.audioUrl,
-    required this.isPlaying,
-    required this.position,
-  });
-}
-
 class _AudioGuidState extends State<AudioGuid> {
   final _audioPlayer = AssetsAudioPlayer();
-  final List<AudioInfo> _audioData = [];
   Duration _duration = const Duration();
   late String errotext = "";
   late String errotitel = "";
-  bool _loadingAudioData = true;
+  bool _loadingAudioData = false;
   Timer? _timer;
 
   @override
@@ -57,7 +41,6 @@ class _AudioGuidState extends State<AudioGuid> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -71,20 +54,6 @@ class _AudioGuidState extends State<AudioGuid> {
         _requestPermissions();
       }
     });
-
-    await AwesomeNotifications().initialize(
-      'resource://drawable/app_icon',
-      [
-        NotificationChannel(
-          channelKey: 'music_channel',
-          channelName: 'Music Channel',
-          channelDescription: 'Channel for Music Notifications',
-          playSound: true,
-          defaultColor: Colors.blue,
-          ledColor: Colors.blue,
-        ),
-      ],
-    );
   }
 
   Future<void> _requestPermissions1() async {
@@ -128,8 +97,10 @@ class _AudioGuidState extends State<AudioGuid> {
   }
 
   Future<void> _fetchAudioData() async {
-    if (_audioData.isEmpty) {
-      print(_audioData);
+    if (Provider.of<AudioData>(context, listen: false).isPlaying == false) {
+      setState(() {
+        _loadingAudioData = true;
+      });
       await _requestPermissions1();
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.best);
@@ -164,13 +135,8 @@ class _AudioGuidState extends State<AudioGuid> {
             audioDataProvider.setAudioUrl(audioData['audio_url']);
 
             // AudioInfo erstellen und zur Liste hinzufügen
-            final audioInfo = AudioInfo(
-              audioUrl: audioData['audio_url'],
-              isPlaying: false,
-              position: Duration.zero,
-            );
+
             setState(() {
-              _audioData.add(audioInfo);
               _loadingAudioData = false;
             });
             // ignore: use_build_context_synchronously
@@ -195,7 +161,7 @@ class _AudioGuidState extends State<AudioGuid> {
                   children: [
                     Text(errotitel),
                     Text(
-                      'AudioGuid 149 $errotext',
+                      'Keine Audio für diesen Standort verfügbar $errotext',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -251,266 +217,288 @@ class _AudioGuidState extends State<AudioGuid> {
     return 0.0;
   }
 
-  Future<void> _playAudio() async {
-    final audioUrl = _audioData[0].audioUrl;
-    await _audioPlayer.open(
-      Audio.network(audioUrl,
-          metas: Metas(
-            title: Provider.of<AudioData>(context, listen: false).titel,
-            artist: Provider.of<AudioData>(context, listen: false).description,
-            image: MetasImage.network(Provider.of<AudioData>(context,
-                        listen: false)
-                    .imageUrl ??
-                "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x10000:format=jpg/path/sfe162db7f5417cfe/image/if0d5387e710379d2/version/1515333113/image.jpg"),
-          )),
-      showNotification: true,
-      notificationSettings: const NotificationSettings(
-        stopEnabled: true,
-        playPauseEnabled: true,
-        nextEnabled: false,
-        prevEnabled: false,
-        seekBarEnabled: true,
-      ),
-      playInBackground:
-          PlayInBackground.enabled, // Erlaube Hintergrundwiedergabe
-    );
-
-    _audioPlayer.currentPosition.listen(
-      (position) {
-        _audioPlayer.current.listen((event) {
-          setState(() {
-            _calculateMaxDuration();
-          });
-        });
-
-        _audioPlayer.play();
-      },
-    );
-  }
-
-  Future<void> _pauseAudio() async {
-    await _audioPlayer.pause();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final audioData = Provider.of<AudioData>(context, listen: false);
-    return WillPopScope(
-      onWillPop: () async {
-        if (_audioPlayer.isPlaying.value == true) {
-          return false; // Wenn die Wiedergabe läuft, verhindern Sie das Verlassen der Seite
-        }
-        return true; // Wenn die Wiedergabe nicht läuft, erlauben Sie das Verlassen der Seite
-      },
-      child: Stack(
-        children: [
-          Hero(
-            tag: "image",
-            child: Container(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                  image: DecorationImage(
-                      image: NetworkImage(audioData.imageUrl ??
-                          "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x10000:format=jpg/path/sfe162db7f5417cfe/image/if0d5387e710379d2/version/1515333113/image.jpg"),
-                      fit: BoxFit.cover)),
-            ),
-          ),
-          _loadingAudioData
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                      TextButton(
-                          style: TextButton.styleFrom(
-                            primary: Colors.white,
-                            backgroundColor: Colors.black.withOpacity(0.5),
-                            onSurface: Colors.grey,
-                          ),
-                          onPressed: _fetchAudioData,
-                          child: const Text("Audio Daten Laden ")),
-                      CircularProgressIndicator(),
-                    ])
-              : body(context, audioData)
-        ],
-      ),
-    );
-  }
-
-  Scaffold body(BuildContext context, AudioData audioData) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: appbar(),
-      body: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 50, left: 20, right: 20),
-          decoration: BoxDecoration(boxShadow: [
-            BoxShadow(
-              blurRadius: 14,
-              spreadRadius: 16,
-              color: Colors.black.withOpacity(0.2),
-            )
-          ]),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.5,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                        width: 1.5, color: Colors.white.withOpacity(0.2))),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(left: 20, right: 20, top: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            audioData.titel,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Text(
-                        audioData.creator,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 15),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Text(
-                        audioData.description,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 20),
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        Slider(
-                          value: _audioPlayer.currentPosition.value.inSeconds
-                              .toDouble(),
-                          min: 0.0,
-                          max: _duration.inSeconds.toDouble(),
-                          onChanged: (double value) {
-                            setState(() {
-                              _audioPlayer
-                                  .seek(Duration(seconds: value.toInt()));
-                            });
-                          },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                Duration(
-                                        seconds: _audioPlayer
-                                            .currentPosition.value.inSeconds)
-                                    .toString()
-                                    .split('.')[0]
-                                    .substring(2),
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.skip_previous_outlined),
-                                color: Colors.white,
-                                iconSize: 40,
-                                onPressed: () {},
-                              ),
-                              IconButton(
-                                icon: _audioPlayer.isPlaying.value == true
-                                    ? const Icon(Icons.pause,
-                                        color: Colors.white, size: 50)
-                                    : const Icon(Icons.play_arrow,
-                                        color: Colors.white, size: 50),
-                                onPressed: () async {
-                                  if (_audioPlayer.isPlaying.value == true) {
-                                    _playAudio();
-                                  } else {
-                                    _pauseAudio();
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.skip_next_outlined),
-                                color: Colors.white,
-                                iconSize: 40,
-                                onPressed: () {
-                                  // Implementieren Sie die Logik für das nächste Audio
-                                },
-                              ),
-                              Text(
-                                Duration(seconds: _duration.inSeconds)
-                                    .toString()
-                                    .split('.')[0]
-                                    .substring(2),
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.repeat),
-                                color: Colors.white,
-                                iconSize: 40,
-                                onPressed: () {
-                                  _audioPlayer.loopMode;
-                                  // Implementieren Sie die Logik für das nächste Audio
-                                },
-                              ),
-                              const Icon(Icons.shuffle,
-                                  color: Colors.white, size: 40)
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    final audioData = Provider.of<AudioData>(context, listen: true);
+    return Stack(
+      children: [
+        Hero(
+          tag: "image",
+          child: Container(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+            decoration: BoxDecoration(
+                image: DecorationImage(
+                    image: NetworkImage(audioData.imageUrl ??
+                        "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x10000:format=jpg/path/sfe162db7f5417cfe/image/if0d5387e710379d2/version/1515333113/image.jpg"),
+                    fit: BoxFit.cover)),
           ),
         ),
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(
-          currentIndex: 1,
-          onTap: (index) {
-            if (index == 0) {
-              Navigator.pop(context);
-            }
-            if (index == 2) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return const SettingPage();
-              }));
-            }
-          },
-          bg: Colors.white10.withOpacity(0.2)),
+        _loadingAudioData
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    CircularProgressIndicator(),
+                  ])
+            : Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    margin:
+                        const EdgeInsets.only(bottom: 50, left: 20, right: 20),
+                    decoration: BoxDecoration(boxShadow: [
+                      BoxShadow(
+                        blurRadius: 14,
+                        spreadRadius: 16,
+                        color: Colors.black.withOpacity(0.2),
+                      )
+                    ]),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          width: MediaQuery.of(context).size.width,
+                          decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                  width: 1.5,
+                                  color: Colors.white.withOpacity(0.2))),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 20, right: 20, top: 20),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      audioData.titel,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 20),
+                                child: Text(
+                                  audioData.creator,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 15),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 20),
+                                child: Text(
+                                  audioData.description,
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 20),
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  Slider(
+                                    value: _audioPlayer
+                                        .currentPosition.value.inSeconds
+                                        .toDouble(),
+                                    min: 0.0,
+                                    max: _duration.inSeconds.toDouble(),
+                                    onChanged: (double value) {
+                                      setState(() {
+                                        _audioPlayer.seek(
+                                            Duration(seconds: value.toInt()));
+                                      });
+                                    },
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          Duration(
+                                                  seconds: _audioPlayer
+                                                      .currentPosition
+                                                      .value
+                                                      .inSeconds)
+                                              .toString()
+                                              .split('.')[0]
+                                              .substring(2),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.skip_previous_outlined),
+                                          color: Colors.white,
+                                          iconSize: 40,
+                                          onPressed: () {},
+                                        ),
+                                        IconButton(
+                                          icon: _audioPlayer.isPlaying.value ==
+                                                  true
+                                              ? const Icon(Icons.pause,
+                                                  color: Colors.white, size: 50)
+                                              : const Icon(Icons.play_arrow,
+                                                  color: Colors.white,
+                                                  size: 50),
+                                          onPressed: () async {
+                                            _audioPlayer.pause();
+                                            if (Provider.of<AudioData>(context,
+                                                        listen: false)
+                                                    .isPlaying ==
+                                                false) {
+                                              final audioUrl =
+                                                  Provider.of<AudioData>(
+                                                          context,
+                                                          listen: false)
+                                                      .audioUrl;
+                                              await _audioPlayer.open(
+                                                Audio.network(audioUrl,
+                                                    metas: Metas(
+                                                      title: Provider.of<
+                                                                  AudioData>(
+                                                              context,
+                                                              listen: false)
+                                                          .titel,
+                                                      artist: Provider.of<
+                                                                  AudioData>(
+                                                              context,
+                                                              listen: false)
+                                                          .description,
+                                                      image: MetasImage.network(
+                                                          Provider.of<AudioData>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .imageUrl ??
+                                                              "https://image.jimcdn.com/app/cms/image/transf/dimension=1920x10000:format=jpg/path/sfe162db7f5417cfe/image/if0d5387e710379d2/version/1515333113/image.jpg"),
+                                                    )),
+                                                showNotification: true,
+                                                notificationSettings:
+                                                    const NotificationSettings(
+                                                  stopEnabled: true,
+                                                  playPauseEnabled: true,
+                                                  nextEnabled: false,
+                                                  prevEnabled: false,
+                                                  seekBarEnabled: true,
+                                                ),
+                                                playInBackground: PlayInBackground
+                                                    .enabled, // Erlaube Hintergrundwiedergabe
+                                              );
+                                              _audioPlayer.currentPosition
+                                                  .listen(
+                                                (position) {
+                                                  _audioPlayer.current
+                                                      .listen((event) {
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _calculateMaxDuration();
+                                                        Provider.of<AudioData>(
+                                                                context,
+                                                                listen: false)
+                                                            .setIsPlaying(true);
+                                                      });
+                                                    }
+                                                  });
+                                                  _audioPlayer.current
+                                                      .listen((onDone) {
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _calculateMaxDuration();
+                                                        Provider.of<AudioData>(
+                                                                context,
+                                                                listen: false)
+                                                            .setIsPlaying(
+                                                                false);
+                                                      });
+                                                    }
+                                                  });
+                                                },
+                                              );
+                                            } else {
+                                              _audioPlayer.play();
+                                              if (mounted) {
+                                                _audioPlayer.stop();
+                                              }
+                                            }
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.skip_next_outlined),
+                                          color: Colors.white,
+                                          iconSize: 40,
+                                          onPressed: () {
+                                            // Implementieren Sie die Logik für das nächste Audio
+                                          },
+                                        ),
+                                        Text(
+                                          Duration(seconds: _duration.inSeconds)
+                                              .toString()
+                                              .split('.')[0]
+                                              .substring(2),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        TextButton(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.white,
+                                              backgroundColor:
+                                                  Colors.black.withOpacity(0.5),
+                                              disabledForegroundColor:
+                                                  Colors.grey.withOpacity(0.38),
+                                            ),
+                                            onPressed: () {
+                                              audioData.setIsPlaying(false);
+                                              _fetchAudioData();
+                                            },
+                                            child: const Text(
+                                                "Audio Daten Neu laden ")),
+                                        const Text(
+                                          "Audio Daten\n nur neue laden\n wenn das\n audio fertig ist da\n es sonst doopelt läuft",
+                                          textAlign: TextAlign.center,
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+      ],
     );
   }
 }
